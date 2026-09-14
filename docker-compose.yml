@@ -1,0 +1,138 @@
+# Sentinel platform — full stack compose.
+# Copy .env.example to .env before `docker compose up`.
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: sentinel-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sentinel}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-sentinel}
+      DATABASE_APP_PASSWORD: ${DATABASE_APP_PASSWORD:-change-me-app-role}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - sentinel_pgdata:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sentinel} -d ${POSTGRES_DB:-sentinel}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    # A05: do not publish 5432 on a public interface in production; bind 127.0.0.1
+    # ports: ["127.0.0.1:5432:5432"]
+
+  minio:
+    image: quay.io/minio/minio:latest
+    container_name: sentinel-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-sentinel_minio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD in .env}
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - sentinel_minio:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:9000/minio/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+
+  minio-init:
+    image: quay.io/minio/mc:latest
+    container_name: sentinel-minio-init
+    depends_on:
+      - minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-sentinel_minio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD in .env}
+      MINIO_BUCKET: ${MINIO_BUCKET:-sentinel-frames}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        i=0
+        until mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD"; do
+          i=$$((i+1))
+          if [ "$$i" -gt 30 ]; then exit 1; fi
+          sleep 2
+        done
+        mc mb -p local/$$MINIO_BUCKET
+        mc anonymous set none local/$$MINIO_BUCKET
+        echo "bucket ready"
+
+  # --- Package A: Backend API ---
+  backend:
+    build: ./backend
+    container_name: sentinel-backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL_APP: ${DATABASE_URL_APP:-postgresql://sentinel_app:change-me-app-role@db:5432/sentinel}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      ALERT_HMAC_SECRET: ${ALERT_HMAC_SECRET:?set ALERT_HMAC_SECRET in .env}
+      BACKEND_PORT: ${BACKEND_PORT:-4000}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:3000}
+      HACKATHON_EMAIL: ${HACKATHON_EMAIL:-}
+      HACKATHON_PASSWORD: ${HACKATHON_PASSWORD:-}
+    ports:
+      - "${BACKEND_PORT:-4000}:4000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:4000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # --- Package B: ANPR / AI Inference Service ---
+  anpr-service:
+    build: ./anpr-service
+    container_name: sentinel-anpr
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      BACKEND_API_URL: http://backend:4000
+      ANPR_SERVICE_PORT: ${ANPR_SERVICE_PORT:-5000}
+      FRAME_SKIP: ${FRAME_SKIP:-5}
+      ANPR_SERVICE_EMAIL: ${DEMO_OPERATOR_EMAIL:-operator@sentinel.local}
+      ANPR_SERVICE_PASSWORD: ${DEMO_OPERATOR_PASSWORD:-ChangeMe_Operator1!}
+    ports:
+      - "${ANPR_SERVICE_PORT:-5000}:5000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/health')\" || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # --- Package C: Frontend Dashboard ---
+  frontend:
+    build: ./frontend
+    container_name: sentinel-frontend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      FRONTEND_PORT: ${FRONTEND_PORT:-3000}
+      VITE_API_URL: /api/v1
+      BACKEND_API_URL: http://backend:4000
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  sentinel_pgdata:
+  sentinel_minio:

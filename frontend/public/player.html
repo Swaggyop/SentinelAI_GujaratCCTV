@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Live Stream</title>
+  <style>
+    body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; }
+    video { width: 100%; height: 100%; object-fit: cover; }
+    #error { position: absolute; top: 10px; left: 10px; color: red; font-family: sans-serif; font-size: 12px; z-index: 10; background: rgba(0,0,0,0.8); padding: 5px; display: none; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
+</head>
+<body>
+  <div id="error"></div>
+  <video id="video" controls autoplay muted></video>
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const camId = urlParams.get('id') || 'cam01';
+    const videoSrc = `https://cctv.corp8.cloud/${camId}/index.m3u8`;
+    const video = document.getElementById('video');
+    const errDiv = document.getElementById('error');
+
+    if (Hls.isSupported()) {
+      const hls = new Hls({
+        xhrSetup: function(xhr, url) {
+          xhr.withCredentials = true; // Send cookies
+        }
+      });
+      
+      hls.on(Hls.Events.ERROR, function (event, data) {
+        if (data.fatal) {
+          errDiv.style.display = 'block';
+          errDiv.innerText = 'HLS Error: ' + data.type + ' | Details: CORS or SSL blocked the chunks.';
+        }
+      });
+
+      hls.loadSource(videoSrc);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, function() {
+        video.play().catch(e => console.log("Autoplay blocked", e));
+      });
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      // Native support (Safari)
+      video.src = videoSrc;
+      video.addEventListener('loadedmetadata', function() {
+        video.play();
+      });
+    }
+  </script>
+</body>
+</html>

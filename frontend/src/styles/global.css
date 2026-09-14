@@ -1,0 +1,312 @@
+/* ============================================================
+   Sentinel — Global Styles
+   ============================================================ */
+@import './tokens.css';
+
+/* ── Reset ───────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-control);
+  font-size: var(--text-body);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--leading-body);
+  background: var(--surface-dark-canvas);
+  color: var(--color-whiteout);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden; /* prevent body scroll — panels scroll independently */
+}
+
+a {
+  color: var(--color-signal-blue);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+button {
+  font-family: var(--font-control);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+
+input, select, textarea {
+  font-family: var(--font-control);
+  font-weight: var(--font-weight-medium);
+}
+
+/* ── App shell layout ────────────────────────────────────── */
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.app-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ── Map — always mounted, hidden when not active ────────── */
+/* This is the key perf decision: Leaflet instance never destroyed */
+.map-root {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.map-root.map-hidden {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* ── Page wrapper (non-map pages) ────────────────────────── */
+.page-root {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  background: var(--surface-dark-canvas);
+  z-index: 1;
+}
+
+/* ── Ghost Button (Air Design System) ───────────────────── */
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-8);
+  padding: 10px var(--spacing-16);
+  background: transparent;
+  color: var(--color-whiteout);
+  border: 1px solid var(--color-whiteout);
+  border-radius: var(--radius-buttons);
+  font-size: var(--text-caption);
+  font-weight: var(--font-weight-medium);
+  transition: background 0.15s ease, opacity 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.btn-ghost:active {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.btn-ghost:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Ghost danger variant */
+.btn-ghost.btn-danger {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+/* ── Solid Light Button (on Haze cards) ─────────────────── */
+.btn-solid {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-8);
+  padding: var(--spacing-8) var(--spacing-16);
+  background: var(--color-haze);
+  color: var(--color-ink);
+  border: 1px solid var(--color-ink);
+  border-radius: var(--radius-buttons);
+  font-size: var(--text-caption);
+  font-weight: var(--font-weight-medium);
+  transition: background 0.15s ease;
+}
+
+.btn-solid:hover {
+  background: #e8e8e8;
+}
+
+.btn-solid:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ── Haze Card ───────────────────────────────────────────── */
+.card-haze {
+  background: var(--surface-haze-card);
+  border-radius: var(--radius-cards);
+  padding: var(--card-padding);
+  color: var(--color-ink);
+}
+
+/* ── Text Input ──────────────────────────────────────────── */
+.input-field {
+  display: block;
+  width: 100%;
+  background: var(--color-haze);
+  color: var(--color-ink);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: var(--radius-inputs);
+  padding: 10px;
+  font-size: var(--text-caption);
+  font-weight: var(--font-weight-medium);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.input-field:focus {
+  border-color: var(--color-signal-blue);
+}
+
+.input-field::placeholder {
+  color: rgba(27, 27, 27, 0.45);
+}
+
+/* Dark variant of input (for nav search bar, dark panels) */
+.input-dark {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--color-whiteout);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-inputs);
+  padding: 8px 12px;
+  font-size: var(--text-caption);
+  font-weight: var(--font-weight-medium);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.input-dark:focus {
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+.input-dark::placeholder {
+  color: rgba(255, 255, 255, 0.30);
+}
+
+/* ── Label ───────────────────────────────────────────────── */
+.form-label {
+  display: block;
+  font-size: var(--text-caption);
+  font-weight: var(--font-weight-medium);
+  margin-bottom: var(--spacing-4);
+  color: var(--color-ink);
+}
+
+.form-label-dark {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+/* ── Section heading on dark canvas ─────────────────────── */
+.section-heading {
+  font-size: var(--text-heading);
+  font-weight: var(--font-weight-black);
+  line-height: var(--leading-heading);
+  color: var(--color-whiteout);
+  letter-spacing: -0.02em;
+}
+
+.section-subheading {
+  font-size: var(--text-caption);
+  font-weight: var(--font-weight-medium);
+  color: rgba(255, 255, 255, 0.50);
+  margin-top: var(--spacing-4);
+}
+
+/* ── Thin separator ──────────────────────────────────────── */
+.divider {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin: var(--spacing-16) 0;
+}
+
+.divider-dark-card {
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* ── Scrollbar — minimal dark ────────────────────────────── */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-pills);
+}
+
+/* ── Leaflet overrides — fit theme ──────────────────────── */
+.leaflet-container {
+  background: #111827;
+  font-family: var(--font-control);
+}
+
+.leaflet-popup-content-wrapper {
+  background: var(--surface-dark-canvas);
+  color: var(--color-whiteout);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-cards);
+  box-shadow: none;
+}
+
+.leaflet-popup-tip {
+  background: var(--surface-dark-canvas);
+}
+
+.leaflet-popup-content {
+  margin: var(--spacing-12) var(--spacing-16);
+}
+
+/* MarkerCluster dark theme */
+.marker-cluster-small,
+.marker-cluster-medium,
+.marker-cluster-large {
+  background-color: rgba(66, 97, 136, 0.5) !important;
+}
+.marker-cluster-small div,
+.marker-cluster-medium div,
+.marker-cluster-large div {
+  background-color: rgba(66, 97, 136, 0.8) !important;
+  color: #fff !important;
+}
+
+/* ── Alert flash animation (new alert arrives) ───────────── */
+@keyframes alert-flash {
+  0%   { background: rgba(43, 127, 255, 0.18); }
+  100% { background: transparent; }
+}
+
+.alert-row-new {
+  animation: alert-flash 1.2s ease-out forwards;
+}
+
+/* ── Utility ─────────────────────────────────────────────── */
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mono {
+  font-family: 'Menlo', 'Consolas', 'Monaco', monospace;
+  font-size: 12px;
+}
+
+.text-dim {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.text-dim-card {
+  color: rgba(27, 27, 27, 0.50);
+}
